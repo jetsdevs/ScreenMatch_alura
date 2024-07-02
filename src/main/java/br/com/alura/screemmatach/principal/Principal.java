@@ -36,8 +36,11 @@ public class Principal {
         while (opcao != 0) {
             var menu = """
                     1 - Buscar Séries
-                    2 - Buscar Episodios
-                    3 - Listar serie buscada
+                    2 - Buscar Titulo
+                    3 - Buscar Episodios
+                    4 - Listar serie buscada
+                    5 - Buscar por Ator
+                    6 - Top 5 series
                                     
                     0 - Sair
                     """;
@@ -51,11 +54,19 @@ public class Principal {
                     buscarSerieWeb();
                     break;
                 case 2:
-                    buscarEpisodioSerie();
+                    buscarSerieTitulo();
                     break;
                 case 3:
+                    buscarEpisodioSerie();
+                    break;
+                case 4:
                     listarSeriesBuscadas();
                     break;
+                case 5:
+                    buscarSeirePorAtor();
+                    break;
+                case 6:
+                    topCincoSeries();
                 case 0:
                     System.out.println("Agradecemos por utulizar nossos serviços");
                 default:
@@ -64,6 +75,8 @@ public class Principal {
             }
         }
     }
+
+
 
     private void buscarSerieWeb() {
         DadosSerie dados = getDadosSerie();
@@ -76,9 +89,11 @@ public class Principal {
     private DadosSerie getDadosSerie() {
         System.out.println("Digite o nome do serie: ");
         var nomeSerie = leitura.nextLine();
+
         var json = consumo.obterDados(ENDERECO + nomeSerie.replace(" ", "+") + API_KEY);
         DadosSerie dados = conversor.obterDados(json, DadosSerie.class);
         return dados;
+
     }
 
     private void buscarEpisodioSerie() {
@@ -86,9 +101,7 @@ public class Principal {
         System.out.println("Digite o nome do serie: ");
         var nomeSerie = leitura.nextLine();
 
-        Optional<Serie> serie = series.stream()
-                .filter(s -> s.getTitulo().toLowerCase().contains(nomeSerie.toLowerCase()))
-                .findFirst();
+        Optional<Serie> serie = repositorio.findByTituloContainingIgnoreCase(nomeSerie);
 
         if (serie.isPresent()) {
 
@@ -122,6 +135,37 @@ public class Principal {
                 .forEach(System.out::println);
 
 
+    }
+
+    private void buscarSerieTitulo() {
+        System.out.println("Digite o nome do serie: ");
+        var nomeSerie = leitura.nextLine();
+
+        Optional<Serie> serieBuscada = repositorio.findByTituloContainingIgnoreCase(nomeSerie);
+
+        if (serieBuscada.isPresent()) {
+            System.out.println("Serie encontrado" + serieBuscada.get());
+        } else {
+            System.out.println("Serie não encontrada!");
+        }
+    }
+
+    private void buscarSeirePorAtor() {
+        System.out.println("Informe o nome do ator: ");
+        var nomeAtor = leitura.nextLine();
+        System.out.println("Informe o valor da avaliação: ");
+        var avaliacao = leitura.nextDouble();
+
+        List<Serie> seriesEcontradas = repositorio.findByAtoresContainingIgnoreCaseAndAvaliacaoGreaterThanEqual(nomeAtor, avaliacao);
+        System.out.println("O ator " + nomeAtor + " atuou em: ");
+        seriesEcontradas.forEach(s ->
+                System.out.println(s.getTitulo() + ": avaliações: " + s.getAvaliacao()));
+    }
+
+    private void topCincoSeries() {
+        List<Serie> serieTop = repositorio.findTop5ByOrderByAvaliacaoDesc();
+        serieTop.forEach(s ->
+                System.out.println(s.getTitulo() + " avaliação: " +s.getAvaliacao()));
     }
 
 }
