@@ -1,13 +1,9 @@
 package br.com.alura.screemmatach.principal;
 
-import br.com.alura.screemmatach.model.DadosSerie;
-import br.com.alura.screemmatach.model.DadosTemporada;
-import br.com.alura.screemmatach.model.Episodios;
-import br.com.alura.screemmatach.model.Serie;
+import br.com.alura.screemmatach.model.*;
 import br.com.alura.screemmatach.repository.SerieRepository;
 import br.com.alura.screemmatach.service.ConsumoApi;
 import br.com.alura.screemmatach.service.ConverteDados;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,6 +21,8 @@ public class Principal {
     private SerieRepository repositorio;
     private List<Serie> series = new ArrayList<>();
 
+    private Optional<Serie> serieBusca;
+
     public Principal(SerieRepository repositorio) {
         this.repositorio = repositorio;
     }
@@ -35,12 +33,16 @@ public class Principal {
 
         while (opcao != 0) {
             var menu = """
-                    1 - Buscar Séries
-                    2 - Buscar Titulo
-                    3 - Buscar Episodios
-                    4 - Listar serie buscada
-                    5 - Buscar por Ator
-                    6 - Top 5 series
+                    1  - Buscar Séries
+                    2  - Buscar Titulo
+                    3  - Buscar Episodios
+                    4  - Listar serie buscada
+                    5  - Buscar por Ator
+                    6  - Top 5 series
+                    7  - Busca por Categoria
+                    8  - Filtrar Series
+                    9  - Buscar Episodio por trecho
+                    10 - Top Episodio por Serie
                                     
                     0 - Sair
                     """;
@@ -67,6 +69,21 @@ public class Principal {
                     break;
                 case 6:
                     topCincoSeries();
+                case 7:
+                    buscarCategoria();
+                    break;
+                case 8:
+                    FiltrarTemporadaAvaliacao();
+                    break;
+                case 9:
+                    buscarTrechoEpisodio();
+                    break;
+                case 10:
+                    topEpisodiosPorSerie();
+                    break;
+                case 11:
+                    buscarEpisodioPorData();
+                    break;
                 case 0:
                     System.out.println("Agradecemos por utulizar nossos serviços");
                 default:
@@ -141,10 +158,10 @@ public class Principal {
         System.out.println("Digite o nome do serie: ");
         var nomeSerie = leitura.nextLine();
 
-        Optional<Serie> serieBuscada = repositorio.findByTituloContainingIgnoreCase(nomeSerie);
+        serieBusca = repositorio.findByTituloContainingIgnoreCase(nomeSerie);
 
-        if (serieBuscada.isPresent()) {
-            System.out.println("Serie encontrado" + serieBuscada.get());
+        if (serieBusca.isPresent()) {
+            System.out.println("Serie encontrado" + serieBusca.get());
         } else {
             System.out.println("Serie não encontrada!");
         }
@@ -165,8 +182,62 @@ public class Principal {
     private void topCincoSeries() {
         List<Serie> serieTop = repositorio.findTop5ByOrderByAvaliacaoDesc();
         serieTop.forEach(s ->
-                System.out.println(s.getTitulo() + " avaliação: " +s.getAvaliacao()));
+                System.out.println(s.getTitulo() + " avaliação: " + s.getAvaliacao()));
     }
+
+    private void buscarCategoria() {
+        System.out.println("Informe a Categoria | Genero: ");
+        var nomeGenero = leitura.nextLine();
+        Categoria categoria = Categoria.fromPortugues(nomeGenero);
+        List<Serie> serieCategoria = repositorio.findByGenero(categoria);
+        System.out.println("Series da Categoria " + nomeGenero);
+        serieCategoria.forEach(System.out::println);
+
+    }
+
+    private void FiltrarTemporadaAvaliacao() {
+        System.out.println("Infrome o numero maximo de temporadas: ");
+        var totalTemporadas = leitura.nextInt();
+        leitura.nextLine();
+        System.out.println("Informe um valor maximo para avaliação: ");
+        var avaliacao = leitura.nextDouble();
+        leitura.nextLine();
+
+        List<Serie> filtroSerie = repositorio.seriesPorTemporadasEAvaliacao(totalTemporadas, avaliacao);
+        System.out.println("### Séries Filtradas ###");
+        filtroSerie.forEach(s ->
+                System.out.println(s.getTitulo() + " - Avaliação: " + s.getAvaliacao()));
+    }
+
+    private void buscarTrechoEpisodio() {
+        System.out.println("Informe o nome do Episodio: ");
+        var trechoEpisodio = leitura.nextLine();
+
+        List<Episodios> episodiosEncontrados = repositorio.episodioPorTrecho(trechoEpisodio);
+        episodiosEncontrados.forEach(e ->
+                System.out.printf("Série: %s \nTemporada: %s  \nEpisódio: %s - %s\n\n",
+                        e.getSerie().getTitulo(), e.getTemporada(),
+                        e.getNumeroEpisodio(), e.getTitulo()));
+
+    }
+
+    private void topEpisodiosPorSerie() {
+        buscarSerieTitulo();
+        if (serieBusca.isPresent()) {
+            Serie serie = serieBusca.get();
+            List<Episodios> topEpisodios = repositorio.topEpisodiosPorSerie(serie);
+            topEpisodios.forEach(e ->
+                    System.out.printf("Série: %s \nTemporada: %s  \nEpisódio: %s - %s \nAvaliação: %s\n\n",
+                            e.getSerie().getTitulo(), e.getTemporada(),
+                            e.getNumeroEpisodio(), e.getTitulo(), e.getAvaliacao()));
+
+        }
+    }
+
+    private void buscarEpisodioPorData() {
+
+    }
+
 
 }
 //             Todo codigo abaixo é referente a aula de lambida:
